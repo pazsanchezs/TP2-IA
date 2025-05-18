@@ -20,59 +20,69 @@ class OthelloGUI:
         self.white_player_type = tk.StringVar(value="Humano")
         self.depth_black = tk.IntVar(value=0)
         self.depth_white = tk.IntVar(value=0)
-        #self.info_label = None
         self.agents = {BLACK: None, WHITE: None}
         self.q_agent_file = "q_agent.pkl"
 
         self._setup_ui()
         self.update_board()
 
-        # Crear agentes al iniciar
         self.black_agent = self.create_agent(BLACK)
         self.white_agent = self.create_agent(WHITE)
         self.agents = {BLACK: self.black_agent, WHITE: self.white_agent}
+        self.stats = {
+            BLACK: {"time": 0.0, "nodes": 0},
+            WHITE: {"time": 0.0, "nodes": 0}
+        }
 
     def reset_game(self):
         self.game = OthelloGame()
-        # Crear agentes al reiniciar
+        self.reset_stats()
         self.black_agent = self.create_agent(BLACK)
         self.white_agent = self.create_agent(WHITE)
         self.agents = {BLACK: self.black_agent, WHITE: self.white_agent}
         self.info_label.config(text="")
+        if self.metrics_tree:
+            for row in self.metrics_tree.get_children():
+                self.metrics_tree.delete(row)
         self.update_board()
+
+    def reset_stats(self):
+        self.stats = {
+            BLACK: {"time": 0.0, "nodes": 0},
+            WHITE: {"time": 0.0, "nodes": 0}
+        }
+
 
     def _setup_ui(self):
         top_frame = ttk.Frame(self.root)
         top_frame.pack(pady=10)
 
-        # Jugador Negro
-        ttk.Label(top_frame, text="Jugador Negro:").grid(row=0, column=0, padx=5)
+        ttk.Label(top_frame, text="Jugador Negro:").grid(row=0, column=0)
         black_player_menu = ttk.Combobox(top_frame, textvariable=self.black_player_type,
-                                        values=["Humano", "Minimax", "AlphaBeta", "RL"], width=12)
-        black_player_menu.grid(row=0, column=1, padx=5)
+                                         values=["Humano", "Minimax", "AlphaBeta", "RL"], width=12)
+        black_player_menu.grid(row=0, column=1)
         black_player_menu.bind("<<ComboboxSelected>>", lambda e: self._update_depth_state(BLACK))
 
-        ttk.Label(top_frame, text="Nivel Negro (N):").grid(row=0, column=2, padx=5)
+        ttk.Label(top_frame, text="Nivel Negro (N):").grid(row=0, column=2)
         self.depth_black_entry = ttk.Entry(top_frame, textvariable=self.depth_black, width=5)
-        self.depth_black_entry.grid(row=0, column=3, padx=5)
+        self.depth_black_entry.grid(row=0, column=3)
 
-        # Jugador Blanco
-        ttk.Label(top_frame, text="Jugador Blanco:").grid(row=1, column=0, padx=5)
+        ttk.Label(top_frame, text="Jugador Blanco:").grid(row=1, column=0)
         white_player_menu = ttk.Combobox(top_frame, textvariable=self.white_player_type,
                                          values=["Humano", "Minimax", "AlphaBeta", "RL"], width=12)
-        white_player_menu.grid(row=1, column=1, padx=5)
+        white_player_menu.grid(row=1, column=1)
         white_player_menu.bind("<<ComboboxSelected>>", lambda e: self._update_depth_state(WHITE))
 
-        ttk.Label(top_frame, text="Nivel Blanco (N):").grid(row=1, column=2, padx=5)
+        ttk.Label(top_frame, text="Nivel Blanco (N):").grid(row=1, column=2)
         self.depth_white_entry = ttk.Entry(top_frame, textvariable=self.depth_white, width=5)
-        self.depth_white_entry.grid(row=1, column=3, padx=5)
+        self.depth_white_entry.grid(row=1, column=3)
 
-        # Botón Reiniciar
         ttk.Button(top_frame, text="Empezar", command=self.reset_game).grid(row=0, column=4, rowspan=2, padx=10)
 
         self.info_label = ttk.Label(self.root, text="")
         self.info_label.pack(pady=5)
 
+        # Tablero
         board_frame = ttk.Frame(self.root)
         board_frame.pack()
         for i in range(8):
@@ -82,16 +92,21 @@ class OthelloGUI:
                 btn.grid(row=i, column=j)
                 self.board_buttons[i][j] = btn
 
+        # Tabla de métricas
+        self.metrics_tree = ttk.Treeview(self.root, columns=("Jugador", "Algoritmo", "Tiempo", "Nodos"), show="headings", height=2)
+        self.metrics_tree.heading("Jugador", text="Jugador")
+        self.metrics_tree.heading("Algoritmo", text="Algoritmo")
+        self.metrics_tree.heading("Tiempo", text="Tiempo (s)")
+        self.metrics_tree.heading("Nodos", text="Nodos")
+        self.metrics_tree.pack(pady=10)
+
         self._update_depth_state(BLACK)
         self._update_depth_state(WHITE)
 
     def _update_depth_state(self, player):
-        if player == BLACK:
-            tipo = self.black_player_type.get()
-            self.depth_black_entry.config(state="normal" if tipo in ["Minimax", "AlphaBeta"] else "disabled")
-        else:
-            tipo = self.white_player_type.get()
-            self.depth_white_entry.config(state="normal" if tipo in ["Minimax", "AlphaBeta"] else "disabled")
+        tipo = self.black_player_type.get() if player == BLACK else self.white_player_type.get()
+        entry = self.depth_black_entry if player == BLACK else self.depth_white_entry
+        entry.config(state="normal" if tipo in ["Minimax", "AlphaBeta"] else "disabled")
 
     def update_board(self):
         for i in range(8):
@@ -106,18 +121,11 @@ class OthelloGUI:
                     btn.config(text="", bg="green")
 
         if self.game.is_game_over():
-            black, white = self.game.count_pieces()
-            result = f"Juego terminado - Negras: {black} | Blancas: {white}"
-            self.info_label.config(text=result)
-            return
-
-        current = self.game.current_player
-        if self.agents[current]:
-            self.root.after(500, self.agent_move)
-        elif (self.black_player_type.get() != "Humano" or self.white_player_type.get() != "Humano") and \
-            (current == BLACK and self.black_player_type.get() != "Humano") or \
-            (current == WHITE and self.white_player_type.get() != "Humano"):
-            self.root.after(500, self.agent_move)
+            self.show_final_metrics()
+        else:
+            current = self.game.current_player
+            if self.agents[current]:
+                self.root.after(500, self.agent_move)
 
     def player_move(self, x, y):
         current = self.game.current_player
@@ -130,8 +138,8 @@ class OthelloGUI:
     def agent_move(self):
         current = self.game.current_player
 
-    # Inicializar acumuladores si no existen
         if not hasattr(self, "stats"):
+            self.reset_stats()
             self.stats = {
                 BLACK: {"time": 0.0, "nodes": 0},
                 WHITE: {"time": 0.0, "nodes": 0}
@@ -142,44 +150,21 @@ class OthelloGUI:
         valid_moves_opponent = self.game.get_valid_moves(opponent)
 
         if not valid_moves_current:
-        # No hay movimientos para jugador actual
             if not valid_moves_opponent:
-            # Ningún jugador puede mover -> fin del juego
-                black_score, white_score = self.game.count_pieces()
-
-                tabla = "\nMÉTRICAS FINALES\n"
-                tabla += "-" * 65 + "\n"
-                tabla += f"{'Jugador':<10} | {'Algoritmo':<15} | {'Tiempo (s)':<10} | {'Nodos':<10}\n"
-                tabla += "-" * 65 + "\n"
-
-                for player, name in [(BLACK, "Negras"), (WHITE, "Blancas")]:
-                    agent = self.black_agent if player == BLACK else self.white_agent
-                    alg = agent.name if agent else "Humano"
-                    tiempo = self.stats[player]["time"]
-                    nodos = self.stats[player]["nodes"]
-                    tabla += f"{name:<10} | {alg:<15} | {tiempo:<10.2f} | {nodos:<10}\n"
-
-                tabla += "-" * 65 + "\n"
-                resultado = f"\nJuego terminado - Negras: {black_score} | Blancas: {white_score}\n"
-                self.info_label.config(text=resultado + tabla)
+                self.show_final_metrics()
                 return
             else:
-            # Pasar turno al oponente y llamar agent_move después
                 self.game.current_player = opponent
                 self.root.after(500, self.agent_move)
                 return
 
-    # Si hay movimientos válidos para el jugador actual, hacer movimiento
         start_time = time.time()
         if current == BLACK:
-            move, nodes, elapsed_time = self.black_agent.get_move(self.game)
+            move, nodes, _ = self.black_agent.get_move(self.game)
         else:
-            move, nodes, elapsed_time = self.white_agent.get_move(self.game)
-        end_time = time.time()
+            move, nodes, _ = self.white_agent.get_move(self.game)
+        elapsed = time.time() - start_time
 
-        elapsed = end_time - start_time
-
-    # Acumular métricas
         self.stats[current]["time"] += elapsed
         self.stats[current]["nodes"] += nodes
 
@@ -187,36 +172,24 @@ class OthelloGUI:
             self.game.make_move(*move, current)
         self.update_board()
 
-    # Repetir turno automático si siguiente jugador es agente
-        if not self.game.is_game_over():
-            self.root.after(500, self.agent_move)
-        else:
-        # Juego terminó
-            black_score, white_score = self.game.count_pieces()
+    def show_final_metrics(self):
+        black, white = self.game.count_pieces()
+        result = f"Juego terminado - Negras: {black} | Blancas: {white}"
+        self.info_label.config(text=result)
 
-            tabla = "\nMÉTRICAS FINALES\n"
-            tabla += "-" * 65 + "\n"
-            tabla += f"{'Jugador':<10} | {'Algoritmo':<15} | {'Tiempo (s)':<10} | {'Nodos':<10} | {'Óptimo'}\n"
-            tabla += "-" * 65 + "\n"
+        for row in self.metrics_tree.get_children():
+            self.metrics_tree.delete(row)
 
-            for player, name in [(BLACK, "Negras"), (WHITE, "Blancas")]:
-                agent = self.black_agent if player == BLACK else self.white_agent
-                alg = agent.name if agent else "Humano"
-                tiempo = self.stats[player]["time"]
-                nodos = self.stats[player]["nodes"]
-                tabla += f"{name:<10} | {alg:<15} | {tiempo:<10.2f} | {nodos:<10}\n"
-
-            tabla += "-" * 65 + "\n"
-            resultado = f"\nJuego terminado - Negras: {black_score} | Blancas: {white_score}\n"
-            self.info_label.config(text=resultado + tabla)
+        for player, name in [(BLACK, "Negras"), (WHITE, "Blancas")]:
+            agent = self.black_agent if player == BLACK else self.white_agent
+            alg = agent.name if agent else "Humano"
+            tiempo = self.stats[player]["time"] if hasattr(self, "stats") else 0
+            nodos = self.stats[player]["nodes"] if hasattr(self, "stats") else 0
+            self.metrics_tree.insert("", "end", values=(name, alg, f"{tiempo:.2f}", nodos))
 
     def create_agent(self, player):
-        if player == BLACK:
-            tipo = self.black_player_type.get()
-            depth = self.depth_black.get()
-        else:
-            tipo = self.white_player_type.get()
-            depth = self.depth_white.get()
+        tipo = self.black_player_type.get() if player == BLACK else self.white_player_type.get()
+        depth = self.depth_black.get() if player == BLACK else self.depth_white.get()
 
         if tipo == "Minimax":
             return MinimaxAgent(depth, player)
@@ -226,16 +199,9 @@ class OthelloGUI:
             agent = QLearningAgent(player)
             if os.path.exists(self.q_agent_file):
                 agent.load(self.q_agent_file)
-            else:
-                messagebox.showinfo("Entrenando QLearning...", "Entrenando agente por refuerzo (esto puede tardar unos segundos)...")
-                agent.train(500)
-                agent.save(self.q_agent_file)
             return agent
-        elif tipo == "Humano":
-            return HumanoAgent(player)
         else:
             return None
-
 if __name__ == "__main__":
     root = tk.Tk()
     app = OthelloGUI(root)

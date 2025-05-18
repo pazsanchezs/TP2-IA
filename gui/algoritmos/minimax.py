@@ -4,8 +4,8 @@ from core.game import OthelloGame, BLACK, WHITE
 
 class MinimaxAgent:
     def __init__(self, max_depth=3, player=BLACK):
-        self.max_depth = max_depth
         self.player = player
+        self.max_depth = int(max_depth)
         self.nodes_expanded = 0
         self.name = "MinimaxAgent"
 

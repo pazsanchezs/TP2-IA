@@ -7,9 +7,9 @@ from core.game import OthelloGame, BLACK, WHITE
 class QLearningAgent:
     def __init__(self, player=BLACK, alpha=0.1, gamma=0.9, epsilon=0.2):
         self.player = player
-        self.alpha = alpha      # learning rate
-        self.gamma = gamma      # discount factor
-        self.epsilon = epsilon  # exploration rate
+        self.alpha = alpha    
+        self.gamma = gamma     
+        self.epsilon = epsilon  
         self.q_table = defaultdict(float)
         self.name = "RLAgent"
 
@@ -44,7 +44,7 @@ class QLearningAgent:
         self.q_table[(old_state, action)] = old_q + self.alpha * (reward + self.gamma * max_future_q - old_q)
 
     def train(self, episodes=1000, log_file="training_log.txt"):
-        with open(log_file, 'w') as f:  # Abrir archivo para escritura
+        with open(log_file, 'w') as f:  #para mostrar el entrenamiento del agente
             for ep in range(episodes):
                 game = OthelloGame()
                 f.write(f"=== Episodio {ep+1} ===\n")
@@ -91,8 +91,10 @@ class QLearningAgent:
 
 
     def get_move(self, game):
+        self.nodes_expanded = 0
         start = time.perf_counter()
         action = self.choose_action(game)
         end = time.perf_counter()
         elapsed = end - start
-        return action, 0, elapsed
+        return action,self.nodes_expanded, elapsed
+
