@@ -16,8 +16,8 @@ class OthelloGUI:
         self.game = OthelloGame()
         self.metrics_tree = None
 
-        self.black_player_type = tk.StringVar(value="Elegir uno")
-        self.white_player_type = tk.StringVar(value="Elegir uno")
+        self.black_player_type = tk.StringVar(value="Humano")
+        self.white_player_type = tk.StringVar(value="Humano")
         self.depth_black = tk.IntVar(value=0)
         self.depth_white = tk.IntVar(value=0)
         #self.info_label = None
@@ -149,7 +149,7 @@ class OthelloGUI:
 
                 tabla = "\nMÉTRICAS FINALES\n"
                 tabla += "-" * 65 + "\n"
-                tabla += f"{'Jugador':<10} | {'Algoritmo':<15} | {'Tiempo (s)':<10} | {'Nodos':<10} | {'Óptimo'}\n"
+                tabla += f"{'Jugador':<10} | {'Algoritmo':<15} | {'Tiempo (s)':<10} | {'Nodos':<10}\n"
                 tabla += "-" * 65 + "\n"
 
                 for player, name in [(BLACK, "Negras"), (WHITE, "Blancas")]:
@@ -196,7 +196,7 @@ class OthelloGUI:
 
             tabla = "\nMÉTRICAS FINALES\n"
             tabla += "-" * 65 + "\n"
-            tabla += f"{'Jugador':<10} | {'Algoritmo':<15} | {'Tiempo (s)':<10} | {'Nodos':<10}\n"
+            tabla += f"{'Jugador':<10} | {'Algoritmo':<15} | {'Tiempo (s)':<10} | {'Nodos':<10} | {'Óptimo'}\n"
             tabla += "-" * 65 + "\n"
 
             for player, name in [(BLACK, "Negras"), (WHITE, "Blancas")]:
