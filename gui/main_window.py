@@ -11,7 +11,7 @@ import os
 class OthelloGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Othello AI")
+        self.root.title("Othello")
         self.board_buttons = [[None for _ in range(8)] for _ in range(8)]
         self.game = OthelloGame()
         self.metrics_tree = None
